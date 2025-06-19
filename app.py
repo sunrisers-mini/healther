@@ -4,6 +4,7 @@ from ibm_watson_machine_learning.metanames import GenTextParamsMetaNames as GenP
 import pandas as pd
 import random
 from datetime import datetime, timedelta
+import json
 
 # Page config
 st.set_page_config(page_title="🩺 Health Assistant", layout="wide", page_icon="🩺")
@@ -119,8 +120,9 @@ try:
         "apikey": st.secrets["WATSONX_APIKEY"]
     }
     project_id = st.secrets["WATSONX_PROJECT_ID"]
+
     llm = WatsonxLLM(
-        model_id="ibm/granite-13b-chat-v2",
+        model_id="ibm/granite-13b-chat-v2",  # ← Updated to 13B chat model
         url=credentials.get("url"),
         apikey=credentials.get("apikey"),
         project_id=project_id,
@@ -206,7 +208,7 @@ elif st.session_state.current_section == "login":
             <input type="password" placeholder="Enter password"><br><br>
             <button>Login</button>
         </form>
-    """)
+    """, unsafe_allow_html=True)
 
 # ------------------------------ USER PROFILE ------------------------------
 elif st.session_state.current_section == "profile":
@@ -241,16 +243,23 @@ elif st.session_state.current_section == "symptoms":
             prompt = f"""
             Based on these symptoms: '{symptoms}', provide a list of possible conditions,
             their likelihood percentages, and next steps like when to see a doctor or self-care measures.
-            Format the output as JSON.
+            Format the output strictly as JSON like this:
+            {{
+                "possible_conditions": [
+                    {{"condition": "Common Cold", "likelihood_percent": 60, "notes": "Mild symptoms"}},
+                    ...
+                ],
+                "next_steps": ["Rest", "Hydration", "Consult a doctor if fever persists"]
+            }}
             """
             response = llm.invoke(prompt)
             try:
-                result = eval(response.strip())  # assuming structured format
+                result = json.loads(response.strip())
                 st.session_state.symptoms_history.append({"input": symptoms, "response": result})
                 st.json(result)
-            except:
-                st.error("Invalid response format from AI.")
-
+            except json.JSONDecodeError:
+                st.error("Invalid response format from AI. Here's what it said:")
+                st.write(response)
     st.markdown("### 📜 Symptom History")
     for item in st.session_state.symptoms_history:
         st.markdown(f"**Q:** {item['input']}")
@@ -290,7 +299,7 @@ elif st.session_state.current_section == "treatments":
             """
             response = llm.invoke(prompt)
             try:
-                plan = eval(response.strip())
+                plan = json.loads(response.strip())
                 st.session_state.treatment_plan = plan
                 st.json(plan)
             except:
@@ -315,13 +324,11 @@ elif st.session_state.current_section == "reports":
     })
     st.line_chart(df.set_index("Date")[["Heart Rate", "Glucose Level"]])
     st.line_chart(df.set_index("Date")[["Systolic BP", "Diastolic BP"]])
-
     st.markdown("### Metric Summary")
     avg_hr = round(sum(heart_rates) / len(heart_rates))
     avg_gluc = round(sum(glucose_levels) / len(glucose_levels))
     st.markdown(f"<div class='metric-box'>Avg Heart Rate: {avg_hr} bpm <span class='positive'>▲+1</span></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='metric-box'>Avg Glucose: {avg_gluc} mg/dL <span class='negative'>▼-2</span></div>", unsafe_allow_html=True)
-
     if st.button("Generate AI Report Summary"):
         prompt = f"Provide insights based on these health trends: {df.describe().to_string()}. Give actionable advice."
         summary = llm.invoke(prompt)
@@ -332,30 +339,25 @@ elif st.session_state.current_section == "reports":
 elif st.session_state.current_section == "diseases":
     st.markdown('<div class="card fade-enter-active">', unsafe_allow_html=True)
     st.markdown('<h2>🫀 Chronic Disease Logs</h2>', unsafe_allow_html=True)
-    
     condition = st.selectbox("Condition", ["Diabetes", "Hypertension", "Asthma"])
-
     if condition == "Diabetes":
         st.markdown("### 🩸 Blood Glucose Tracker")
         glucose = st.number_input("Blood Glucose Level (mg/dL)", min_value=40, max_value=400, step=5)
         if st.button("Log Glucose"):
             st.session_state.glucose_log = st.session_state.get("glucose_log", []) + [glucose]
             st.success(f"Logged: {glucose} mg/dL")
-
             prompt = f"My blood sugar is {glucose}. Is it normal? What should I do?"
             try:
                 advice = llm.invoke(prompt)
             except:
                 advice = "AI is currently unavailable for advice."
             st.markdown(f"🤖 **AI Advice:**\n{advice}")
-
         if "glucose_log" in st.session_state and len(st.session_state.glucose_log) > 0:
             df_glucose = pd.DataFrame({
                 "Date": [datetime.now() - timedelta(days=i) for i in range(len(st.session_state.glucose_log))],
                 "Glucose Level (mg/dL)": st.session_state.glucose_log
             })
             st.line_chart(df_glucose.set_index("Date")["Glucose Level (mg/dL)"])
-
     elif condition == "Hypertension":
         st.markdown("### 💓 Blood Pressure Log")
         col1, col2 = st.columns(2)
@@ -363,23 +365,19 @@ elif st.session_state.current_section == "diseases":
             systolic = st.number_input("Systolic (mmHg)", min_value=90, max_value=200, value=120)
         with col2:
             diastolic = st.number_input("Diastolic (mmHg)", min_value=60, max_value=130, value=80)
-
         if st.button("Log BP"):
             st.session_state.bp_log = st.session_state.get("bp_log", []) + [(systolic, diastolic)]
             st.success(f"Logged: {systolic}/{diastolic} mmHg")
-
             prompt = f"My blood pressure is {systolic}/{diastolic} mmHg. What does that mean?"
             try:
                 advice = llm.invoke(prompt)
             except:
                 advice = "AI is currently unavailable for advice."
             st.markdown(f"🤖 **AI Advice:**\n{advice}")
-
         if "bp_log" in st.session_state and len(st.session_state.bp_log) > 0:
             bp_data = pd.DataFrame(st.session_state.bp_log, columns=["Systolic", "Diastolic"])
             bp_data["Date"] = [datetime.now() - timedelta(days=i) for i in range(len(bp_data))]
             st.line_chart(bp_data.set_index("Date")[["Systolic", "Diastolic"]])
-
     elif condition == "Asthma":
         st.markdown("### 🌬️ Asthma Trigger Tracker")
         triggers = st.text_area("Triggers Today (e.g., pollen, dust)")
@@ -387,19 +385,16 @@ elif st.session_state.current_section == "diseases":
         if st.button("Log Asthma Episode"):
             st.session_state.asthma_log = st.session_state.get("asthma_log", []) + [{"triggers": triggers, "severity": severity}]
             st.success("Episode logged successfully.")
-
             prompt = f"What are some ways to avoid asthma triggers like {triggers}?"
             try:
                 advice = llm.invoke(prompt)
             except:
                 advice = "AI is currently unavailable for advice."
             st.markdown(f"🤖 **AI Advice:**\n{advice}")
-
         if "asthma_log" in st.session_state and len(st.session_state.asthma_log) > 0:
             asthma_df = pd.DataFrame(st.session_state.asthma_log)
             asthma_df["Date"] = [datetime.now() - timedelta(days=i) for i in range(len(asthma_df))]
             st.line_chart(asthma_df.set_index("Date")["severity"])
-
     st.markdown('</div>')
 
 # Footer
