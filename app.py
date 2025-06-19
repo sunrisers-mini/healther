@@ -4,16 +4,15 @@ from ibm_watson_machine_learning.metanames import GenTextParamsMetaNames as GenP
 import pandas as pd
 import random
 from datetime import datetime, timedelta
-import json
 
 # Page config
 st.set_page_config(page_title="🩺 Health Assistant", layout="wide", page_icon="🩺")
 
-# Custom CSS for animated UI and green/blue theme
+# Custom CSS for violet and pink theme
 st.markdown("""
     <style>
         body {
-            background-color: #f0fff4;
+            background-color: #f5e6fa;
             font-family: Arial, sans-serif;
         }
         .main {
@@ -26,7 +25,7 @@ st.markdown("""
         .card {
             background-color: #ffffff;
             padding: 15px 20px;
-            border-left: 5px solid #2ecc71;
+            border-left: 5px solid #8e44ad;
             margin: 10px 0;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
@@ -37,7 +36,7 @@ st.markdown("""
             to {opacity: 1; transform: translateY(0);}
         }
         .chat-bubble-user {
-            background-color: #d6eaff;
+            background-color: #dcd6f7;
             padding: 10px;
             border-radius: 10px;
             max-width: 70%;
@@ -45,7 +44,7 @@ st.markdown("""
             margin: 5px 0;
         }
         .chat-bubble-bot {
-            background-color: #e6f0ff;
+            background-color: #f2d7d5;
             padding: 10px;
             border-radius: 10px;
             max-width: 70%;
@@ -57,22 +56,24 @@ st.markdown("""
             justify-content: center;
             gap: 15px;
             padding: 10px 0;
-            background: linear-gradient(to right, #2ecc71, #27ae60);
+            background: linear-gradient(to right, #8e44ad, #ec7063);
             border-radius: 8px;
             margin-bottom: 20px;
         }
         .nav-button {
             background-color: #ffffff;
-            color: #2ecc71;
+            color: #8e44ad;
             border: none;
-            padding: 10px 16px;
+            padding: 10px 20px;
             font-size: 16px;
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.3s ease;
+            min-width: 100px;
+            text-align: center;
         }
         .nav-button:hover {
-            background-color: #eafaf1;
+            background-color: #f9ebf7;
         }
         .fade-enter {
             opacity: 0;
@@ -86,7 +87,7 @@ st.markdown("""
         .metric-box {
             padding: 10px;
             border-radius: 8px;
-            background-color: #ecf0f1;
+            background-color: #f2e2f9;
             margin: 5px;
             text-align: center;
         }
@@ -122,7 +123,7 @@ try:
     project_id = st.secrets["WATSONX_PROJECT_ID"]
 
     llm = WatsonxLLM(
-        model_id="ibm/granite-13b-chat-v2",  # ← Updated to 13B chat model
+        model_id="ibm/granite-13b-chat-v2",
         url=credentials.get("url"),
         apikey=credentials.get("apikey"),
         project_id=project_id,
@@ -141,40 +142,40 @@ except Exception as e:
     st.error(f"🚨 Error initializing LLM: {str(e)}")
     st.stop()
 
-# Top Navigation Buttons
+# Top Navigation Buttons (Equal size)
 st.markdown('<div class="navbar">', unsafe_allow_html=True)
 col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns(9)
 with col1:
-    if st.button("🏠 Home", key="btn_home", use_container_width=True):
+    if st.button("🏠 Home", key="btn_home"):
         st.session_state.current_section = "home"
 with col2:
-    if st.button("🔐 Login", key="btn_login", use_container_width=True):
+    if st.button("🔐 Login", key="btn_login"):
         st.session_state.current_section = "login"
 with col3:
-    if st.button("🧾 Profile", key="btn_profile", use_container_width=True):
+    if st.button("🧾 Profile", key="btn_profile"):
         st.session_state.current_section = "profile"
 with col4:
-    if st.button("🧠 Symptoms", key="btn_symptoms", use_container_width=True):
+    if st.button("🧠 Symptoms", key="btn_symptoms"):
         st.session_state.current_section = "symptoms"
 with col5:
-    if st.button("🤖 Chat", key="btn_chat", use_container_width=True):
+    if st.button("🤖 Chat", key="btn_chat"):
         st.session_state.current_section = "chat"
 with col6:
-    if st.button("🫀 Diseases", key="btn_diseases", use_container_width=True):
+    if st.button("🫀 Diseases", key="btn_diseases"):
         st.session_state.current_section = "diseases"
 with col7:
-    if st.button("📈 Reports", key="btn_reports", use_container_width=True):
+    if st.button("📈 Reports", key="btn_reports"):
         st.session_state.current_section = "reports"
 with col8:
-    if st.button("💊 Treatments", key="btn_treatments", use_container_width=True):
+    if st.button("💊 Treatments", key="btn_treatments"):
         st.session_state.current_section = "treatments"
 with col9:
-    if st.button("⚙️ Settings", key="btn_settings", use_container_width=True):
+    if st.button("⚙️ Settings", key="btn_settings"):
         st.session_state.current_section = "settings"
 st.markdown('</div>', unsafe_allow_html=True)
 
 # Header
-st.markdown('<h1 style="text-align:center; color:#2ecc71;">🩺 Health Assistant</h1>', unsafe_allow_html=True)
+st.markdown('<h1 style="text-align:center; color:#8e44ad;">🩺 Health Assistant</h1>', unsafe_allow_html=True)
 st.markdown('<p style="text-align:center; font-size:16px;">A modern health tracking and wellness assistant.</p>', unsafe_allow_html=True)
 
 # Function to show/hide sections with animation
