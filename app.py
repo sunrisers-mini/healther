@@ -123,7 +123,7 @@ try:
     project_id = st.secrets["WATSONX_PROJECT_ID"]
 
     llm = WatsonxLLM(
-        model_id="ibm/granite-13b-chat-v2",
+        model_id="ibm/granite-13b-instruct-v2'",
         url=credentials.get("url"),
         apikey=credentials.get("apikey"),
         project_id=project_id,
